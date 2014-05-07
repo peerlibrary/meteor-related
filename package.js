@@ -3,7 +3,7 @@ Package.describe({
 });
 
 Package.on_use(function (api) {
-  api.use(['coffeescript', 'underscore'], 'server');
+  api.use(['coffeescript', 'underscore', 'assert'], 'server');
 
   api.add_files([
     'server.coffee'
@@ -11,6 +11,6 @@ Package.on_use(function (api) {
 });
 
 Package.on_test(function (api) {
-  api.use(['related', 'tinytest', 'test-helpers'], 'server');
-  api.add_files('tests.js', 'server');
+  api.use(['related', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'random'], ['client', 'server']);
+  api.add_files('tests.coffee', ['client', 'server']);
 });

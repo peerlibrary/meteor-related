@@ -52,6 +52,6 @@ Known limitations
 Currently each of related queries is expected to return at most one document at all times.
 In theory returning multiple documents could be supported, but this means that related publish
 callback would be rerun at any change of any of those multiple documents. This is probably not
-a not very efficient approach.
+a very efficient approach.
 
 Nested calls to `related` should probably work, but were not yet tested.

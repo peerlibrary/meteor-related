@@ -33,6 +33,7 @@ unless originalPublish
             # to the client. We call changed to send updated fields (Meteor sends
             # only a diff).
             if oldRelatedPublish?._documents[collectionName]?[id]
+              # TODO: We might want to really send only those fields which changed, a diff
               @changed collectionName, id, fields
 
           relatedPublish.ready = -> # Noop

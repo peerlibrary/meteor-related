@@ -4,7 +4,21 @@ Publish with reactive dependencies
 Adding this package to your [Meteor](http://www.meteor.com/) application augments
 [Meteor.publish](http://docs.meteor.com/#meteor_publish) handler object with method
 `related` which allows you to define publish endpoints with reactive dependencies on
-additional queries.
+additional queries. It allows easy wrapping of existing publish functions without any
+change needed. You can use publish functions which return query cursors, or which
+uses publish `added`/`changed`/`removed` API.
+
+This is useful in all situations where you want to publish documents which have a
+query based on data from some other document and you want that everything behaves
+reactively, if any of those documents change, published documents should change as
+well. Examples are any queries which limit published based documents on a list
+of IDs in another document. Or a permission system where you want to limit published
+documents based on flags and other properties of currently logged-in user.
+
+Server side only.
+
+Installation
+------------
 
 ```
 mrt add related
@@ -14,10 +28,12 @@ mrt add related
 --------------
 
 Along with existing properties and methods, `this` inside `Meteor.publish` callback now
-has `related` method available. Method excepts:
+has `related` method available. Method accepts:
 
- * a callback, a new publish callback which will get as arguments results of your queries
- * one or more quries which will run and their results will be passed to a callback as arguments
+ * a callback – a new publish callback which will get as arguments results of your queries
+ * one or more query cursors which should each return at most one document at any given moment;
+ documents returned from query cursors will then be passed to the callback reactively, every
+ time any of them changes callback will be rerun
 
 Example
 -------
@@ -40,8 +56,9 @@ Meteor.publish('followed-blog-posts', function () {
 ```
 
 Every time `follows` field of currently logged-in user changes, related publish callback is
-rerun with new `user` document as an argument. Callback should do anything a normal publish
-callback should: or call `added`/`changed`/`removed`, or simply return a query to publish.
+rerun with new `user` document as an argument (as returned from `Meteor.users.find` query).
+Callback should do anything a normal publish callback should: or call `added`/`changed`/`removed`,
+or simply return a query to publish like in our example.
 
 Documents are tracked between reruns and are not republished if they remain the same between
 reruns.
@@ -55,3 +72,21 @@ callback would be rerun at any change of any of those multiple documents. This i
 a very efficient approach.
 
 Nested calls to `related` should probably work, but were not yet tested.
+
+Related projects
+----------------
+
+There are few other similar projects trying to address a similar feature. We needed something
+production grade, with tests, and simple code base built upon existing Meteor features
+instead of trying to replace them. Most of our code just wraps existing Meteor code into the
+reactive loop, and allowing existing publish functions to be reused without any change needed,
+you can return queries or you can use `added`/`changed`/`removed`, all this is supported. Just
+instead of having static arguments to your publish function, publish function is rerun when any
+of arguments changes. Its API is thus simple and intuitive.
+
+* [meteor-reactive-publish](https://github.com/Diggsey/meteor-reactive-publish) – uses API based on server-side dependency
+tracking, but no tests and no support for `added`/`changed`/`removed`
+* [meteor-publish-with-relations](https://github.com/svasva/meteor-publish-with-relations) – complicated custom API not
+allowing to reuse existing publish functions, which means no support for `added`/`changed`/`removed` as well
+* [meteor-smart-publish](https://github.com/yeputons/meteor-smart-publish) – complicated way of defining dependencies
+and works only with query cursors and not custom `added`/`changed`/`removed` functions

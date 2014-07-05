@@ -3,7 +3,7 @@
   "description": "Publish with reactive dependencies on related queries",
   "homepage": "https://github.com/peerlibrary/meteor-related",
   "author": "The PeerLibrary Project",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "git": "https://github.com/peerlibrary/meteor-related.git",
   "packages": {
     "assert": {}

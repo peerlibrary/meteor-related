@@ -67,7 +67,7 @@ if Meteor.isServer
 if Meteor.isClient
   Counts = new Meteor.Collection 'Counts'
 
-  testAsyncMulti 'meteor-related - basic', [
+  testAsyncMulti 'related - basic', [
     (test, expect) ->
       Meteor.subscribe 'users-posts', expect()
       Meteor.subscribe 'users-posts-count', expect()

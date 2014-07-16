@@ -1,5 +1,5 @@
-Users = new Meteor.Collection "Users_#{ Random.id() }"
-Posts = new Meteor.Collection "Posts_#{ Random.id() }"
+Users = new Meteor.Collection "Users_meteor_related_tests"
+Posts = new Meteor.Collection "Posts_meteor_related_tests"
 
 intersectionObjects = (array, rest...) ->
   _.filter _.uniq(array), (item) ->

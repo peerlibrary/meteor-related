@@ -6,7 +6,7 @@ unless originalPublish
       publish = @
 
       # This function wraps the logic of publishing related documents. publishFunction gets
-      # as arguments documents returned from related querysets. Everytime any related document
+      # as arguments documents returned from related querysets. Every time any related document
       # changes, publishFunction is rerun. The requirement is that related querysets return
       # exactly one document. publishFunction can be anything a normal publish endpoint function
       # can be, it can return querysets or can call added/changed/removed. It does not have to

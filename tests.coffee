@@ -48,10 +48,10 @@ if Meteor.isServer
       ).observeChanges
         added: (id) =>
           count++
-          @changed countId, count: count unless initializing
+          @changed 'Counts', countId, count: count unless initializing
         removed: (id) =>
           count--
-          @changed countId, count: count unless initializing
+          @changed 'Counts', countId, count: count unless initializing
 
       initializing = false
 
@@ -134,6 +134,14 @@ if Meteor.isClient
     (test, expect) ->
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
       test.equal Counts.findOne()?.count, @posts.length
+
+      Posts.remove @posts[0], expect (error, count) =>
+          test.isFalse error, error?.toString?() or error
+          test.equal count, 1
+  ,
+    (test, expect) ->
+      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts[1..]
+      test.equal Counts.findOne()?.count, @posts.length - 1
 
       Users.remove @userId,
         expect (error) =>

@@ -26,21 +26,35 @@ if Meteor.isServer
   Meteor.publish null, ->
     Users.find()
 
-  Meteor.publish 'users-posts', ->
+  Meteor.publish 'posts', (ids) ->
+     Posts.find
+      _id:
+        $in: ids
+
+  Meteor.publish 'users-posts', (userId) ->
     @related (user) ->
-      Posts.find
+      Posts.find(
         _id:
           $in: user?.posts or []
+      ).observeChanges
+        added: (id, fields) =>
+          fields.dummyField = true
+          @added 'Posts_meteor_related_tests', id, fields
+        changed: (id, fields) =>
+          @changed 'Posts_meteor_related_tests', id, fields
+        removed: (id) =>
+          @removed 'Posts_meteor_related_tests', id
+
+      @ready()
     ,
-      Users.find {},
+      Users.find userId,
         fields:
           posts: 1
 
-  Meteor.publish 'users-posts-count', ->
+  Meteor.publish 'users-posts-count', (userId, countId) ->
     @related (user) ->
       count = 0
       initializing = true
-      countId = Random.id()
 
       Posts.find(
         _id:
@@ -60,7 +74,7 @@ if Meteor.isServer
 
       @ready()
     ,
-      Users.find {},
+      Users.find userId,
         fields:
           posts: 1
 
@@ -69,12 +83,15 @@ if Meteor.isClient
 
   testAsyncMulti 'related - basic', [
     (test, expect) ->
-      Meteor.subscribe 'users-posts', expect()
-      Meteor.subscribe 'users-posts-count', expect()
+      @userId = Random.id()
+      @countId = Random.id()
+
+      Meteor.subscribe 'users-posts', @userId, expect()
+      Meteor.subscribe 'users-posts-count', @userId, @countId, expect()
   ,
     (test, expect) ->
       test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne()?.count, 0
+      test.equal Counts.findOne(@countId)?.count, 0
 
       @posts = []
 
@@ -86,19 +103,22 @@ if Meteor.isClient
   ,
     (test, expect) ->
       test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne()?.count, 0
+      test.equal Counts.findOne(@countId)?.count, 0
 
       Users.insert
+        _id: @userId
         posts: @posts
       ,
         expect (error, userId) =>
           test.isFalse error, error?.toString?() or error
           test.isTrue userId
-          @userId = userId
+          test.equal userId, @userId
   ,
     (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne()?.count, @posts.length
+      test.equal Counts.findOne(@countId)?.count, @posts.length
 
       @shortPosts = @posts[0...5]
 
@@ -110,8 +130,10 @@ if Meteor.isClient
           test.equal count, 1
   ,
     (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @shortPosts
-      test.equal Counts.findOne()?.count, @shortPosts.length
+      test.equal Counts.findOne(@countId)?.count, @shortPosts.length
 
       Users.update @userId,
         posts: []
@@ -122,7 +144,7 @@ if Meteor.isClient
   ,
     (test, expect) ->
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), []
-      test.equal Counts.findOne()?.count, 0
+      test.equal Counts.findOne(@countId)?.count, 0
 
       Users.update @userId,
         posts: @posts
@@ -132,16 +154,20 @@ if Meteor.isClient
           test.equal count, 1
   ,
     (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne()?.count, @posts.length
+      test.equal Counts.findOne(@countId)?.count, @posts.length
 
       Posts.remove @posts[0], expect (error, count) =>
           test.isFalse error, error?.toString?() or error
           test.equal count, 1
   ,
     (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts[1..]
-      test.equal Counts.findOne()?.count, @posts.length - 1
+      test.equal Counts.findOne(@countId)?.count, @posts.length - 1
 
       Users.remove @userId,
         expect (error) =>
@@ -149,5 +175,56 @@ if Meteor.isClient
   ,
     (test, expect) ->
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), []
-      test.equal Counts.findOne()?.count, 0
+      test.equal Counts.findOne(@countId)?.count, 0
+  ]
+
+  testAsyncMulti 'related - unsubscribing', [
+    (test, expect) ->
+      @userId = Random.id()
+      @countId = Random.id()
+
+      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId, expect()
+      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId, expect()
+  ,
+    (test, expect) ->
+      test.equal Posts.find().fetch(), []
+      test.equal Counts.findOne(@countId)?.count, 0
+
+      @posts = []
+
+      for i in [0...10]
+        Posts.insert {}, expect (error, id) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue id
+          @posts.push id
+  ,
+    (test, expect) ->
+      test.equal Posts.find().fetch(), []
+      test.equal Counts.findOne(@countId)?.count, 0
+
+      Users.insert
+        _id: @userId
+        posts: @posts
+      ,
+        expect (error, userId) =>
+          test.isFalse error, error?.toString?() or error
+          test.isTrue userId
+          test.equal userId, @userId
+  ,
+    (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
+      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
+      test.equal Counts.findOne(@countId)?.count, @posts.length
+
+      Meteor.subscribe 'posts', @posts, expect()
+      @usersPostsSubscribe.stop()
+  ,
+    (test, expect) ->
+      # After unsubscribing from the related-based publish which added dummyField,
+      # dummyField should be removed from documents available on the client side
+      Posts.find().forEach (post) ->
+        test.isUndefined post.dummyField
+      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
+
   ]

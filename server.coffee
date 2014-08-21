@@ -31,7 +31,7 @@ unless originalPublish
             # relatedPublish's _documents and call changed to send updated fields
             # (Meteor sends only a diff).
             if oldRelatedPublish?._documents[collectionName]?[stringId]
-              Meteor._ensure(relatedPublish._documents, collectionName)[stringId] = true
+              Meteor._ensure(@_documents, collectionName)[stringId] = true
               @changed collectionName, id, fields
             else
               relatedPublishAdded.call @, collectionName, id, fields

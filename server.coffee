@@ -26,15 +26,15 @@ unless originalPublish
 
           relatedPublishAdded = relatedPublish.added
           relatedPublish.added = (collectionName, id, fields) ->
-            relatedPublishAdded.call @, collectionName, id, fields
-            id = @_idFilter.idStringify id
-            # If document as already present in oldRelatedPublish then call above
-            # will just register it with relatedPublish but not really send anything
-            # to the client. We call changed to send updated fields (Meteor sends
-            # only a diff).
-            if oldRelatedPublish?._documents[collectionName]?[id]
-              # TODO: We might want to really send only those fields which changed, a diff
+            stringId = @_idFilter.idStringify id
+            # If document as already present in oldRelatedPublish then we just set
+            # relatedPublish's _documents and call changed to send updated fields
+            # (Meteor sends only a diff).
+            if oldRelatedPublish?._documents[collectionName]?[stringId]
+              Meteor._ensure(relatedPublish._documents, collectionName)[stringId] = true
               @changed collectionName, id, fields
+            else
+              relatedPublishAdded.call @, collectionName, id, fields
 
           relatedPublish.ready = -> # Noop
 

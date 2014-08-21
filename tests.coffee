@@ -217,8 +217,25 @@ if Meteor.isClient
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
       test.equal Counts.findOne(@countId)?.count, @posts.length
 
+      # We have to update posts to trigger at least one rerun
+      Users.update @userId,
+        posts: _.shuffle @posts
+      ,
+        expect (error, count) =>
+          test.isFalse error, error?.toString?() or error
+          test.equal count, 1
+  ,
+    (test, expect) ->
+      Posts.find().forEach (post) ->
+        test.isTrue post.dummyField, true
+      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
+      test.equal Counts.findOne(@countId)?.count, @posts.length
+
       Meteor.subscribe 'posts', @posts, expect()
       @usersPostsSubscribe.stop()
+
+      # Let's wait a but for subscription to really stop
+      Meteor.setTimeout expect(), 1000
   ,
     (test, expect) ->
       # After unsubscribing from the related-based publish which added dummyField,

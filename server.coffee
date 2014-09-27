@@ -41,6 +41,9 @@ unless originalPublish
             # Mark it as ready only the first time
             publish.ready() unless ready
             ready = true
+            # To return nothing, so that it can be used at the end of the
+            # publish function in CoffeeScript without an error
+            return
 
           relatedPublish.stop = (relatedChange) ->
             if relatedChange

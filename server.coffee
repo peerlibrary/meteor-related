@@ -16,6 +16,7 @@ unless originalPublish
       # TODO: Should we use try/except around the code so that if there is any exception we stop handlers?
       publish.related = (publishFunction, related...) ->
         relatedPublish = null
+        ready = false
 
         publishDocuments = (relatedDocuments) ->
           oldRelatedPublish = relatedPublish
@@ -36,7 +37,10 @@ unless originalPublish
             else
               relatedPublishAdded.call @, collectionName, id, fields
 
-          relatedPublish.ready = -> # Noop
+          relatedPublish.ready = ->
+            # Mark it as ready only the first time
+            publish.ready() unless ready
+            ready = true
 
           relatedPublish.stop = (relatedChange) ->
             if relatedChange
@@ -111,8 +115,6 @@ unless originalPublish
 
         # We call publishDocuments for the first time
         publishDocuments currentRelatedDocuments
-
-        publish.ready()
 
         publish.onStop ->
           for handle, i in handleRelatedDocuments

@@ -32,7 +32,11 @@ if Meteor.isServer
         $in: ids
 
   Meteor.publish 'users-posts', (userId) ->
+    @copyIn = true
+
     @related (user) ->
+      assert @copyIn, "copyIn not copied into related publish"
+
       Posts.find(
         _id:
           $in: user?.posts or []

@@ -22,8 +22,16 @@ unless originalPublish
           oldRelatedPublish = relatedPublish
 
           relatedPublish = publish._recreate()
-          # TODO: Test how recursive @related works
-          relatedPublish.related = publish.related
+
+          # We copy overridden methods if they exist
+          for own key, value of publish when key in ['added', 'changed', 'removed', 'ready', 'stop', 'error']
+            relatedPublish[key] = value
+
+          # If there are any extra fields which do not exist in recreated related publish
+          # (because they were added by some other code), copy them over
+          # TODO: This copies also @related, test how recursive @related works
+          for own key, value of publish when key not of relatedPublish
+            relatedPublish[key] = value
 
           relatedPublishAdded = relatedPublish.added
           relatedPublish.added = (collectionName, id, fields) ->

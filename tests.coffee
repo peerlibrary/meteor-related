@@ -1,5 +1,5 @@
-Users = new Meteor.Collection "Users_meteor_related_tests"
-Posts = new Meteor.Collection "Posts_meteor_related_tests"
+Users = new Meteor.Collection 'Users_meteor_related_tests'
+Posts = new Meteor.Collection 'Posts_meteor_related_tests'
 
 intersectionObjects = (array, rest...) ->
   _.filter _.uniq(array), (item) ->
@@ -32,7 +32,11 @@ if Meteor.isServer
         $in: ids
 
   Meteor.publish 'users-posts', (userId) ->
+    @copyIn = true
+
     @related (user) ->
+      assert @copyIn, "copyIn not copied into related publish"
+
       Posts.find(
         _id:
           $in: user?.posts or []
@@ -86,8 +90,14 @@ if Meteor.isClient
       @userId = Random.id()
       @countId = Random.id()
 
-      Meteor.subscribe 'users-posts', @userId, expect()
-      Meteor.subscribe 'users-posts-count', @userId, @countId, expect()
+      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId,
+        onReady: expect()
+        onError: (error) ->
+          test.exception error
+      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId,
+        onReady: expect()
+        onError: (error) ->
+          test.exception error
   ,
     (test, expect) ->
       test.equal Posts.find().fetch(), []
@@ -176,6 +186,9 @@ if Meteor.isClient
     (test, expect) ->
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), []
       test.equal Counts.findOne(@countId)?.count, 0
+
+      @usersPostsSubscribe.stop()
+      @usersPostsCount.stop()
   ]
 
   testAsyncMulti 'related - unsubscribing', [
@@ -183,8 +196,14 @@ if Meteor.isClient
       @userId = Random.id()
       @countId = Random.id()
 
-      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId, expect()
-      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId, expect()
+      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId,
+        onReady: expect()
+        onError: (error) ->
+          test.exception error
+      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId,
+        onReady: expect()
+        onError: (error) ->
+          test.exception error
   ,
     (test, expect) ->
       test.equal Posts.find().fetch(), []
@@ -231,7 +250,10 @@ if Meteor.isClient
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
       test.equal Counts.findOne(@countId)?.count, @posts.length
 
-      Meteor.subscribe 'posts', @posts, expect()
+      Meteor.subscribe 'posts', @posts,
+        onReady: expect()
+        onError: (error) ->
+          test.exception error
       @usersPostsSubscribe.stop()
 
       # Let's wait a but for subscription to really stop
@@ -244,4 +266,6 @@ if Meteor.isClient
         test.isUndefined post.dummyField
       testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
 
+      @usersPostsSubscribe.stop()
+      @usersPostsCount.stop()
   ]

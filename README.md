@@ -86,7 +86,9 @@ of arguments changes. Its API is thus simple and intuitive.
 
 * [meteor-reactive-publish](https://github.com/Diggsey/meteor-reactive-publish) – uses API based on server-side dependency
 tracking, but no tests and no support for `added`/`changed`/`removed`
-* [meteor-publish-with-relations](https://github.com/svasva/meteor-publish-with-relations) – complicated custom API not
+* [meteor-publish-with-relations](https://github.com/tmeasday/meteor-publish-with-relations/) – complicated custom API not
 allowing to reuse existing publish functions, which means no support for `added`/`changed`/`removed` as well
 * [meteor-smart-publish](https://github.com/yeputons/meteor-smart-publish) – complicated way of defining dependencies
 and works only with query cursors and not custom `added`/`changed`/`removed` functions
+* [reywood:publish-composite](https://atmospherejs.com/reywood/publish-composite)- quite popular, TBD
+* [copleyjk:simple-publish](https://atmospherejs.com/copleykj/simple-publish) - boasts simple API, reduced CPU usage, and avoidance of memory leaks

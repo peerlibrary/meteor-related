@@ -21,7 +21,7 @@ Installation
 ------------
 
 ```
-mrt add related
+meteor add peerlibrary:related
 ```
 
 `this.related`

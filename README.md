@@ -5,8 +5,8 @@ Adding this package to your [Meteor](http://www.meteor.com/) application augment
 [Meteor.publish](http://docs.meteor.com/#meteor_publish) handler object with method
 `related` which allows you to define publish endpoints with reactive dependencies on
 additional queries. It allows easy wrapping of existing publish functions without any
-change needed. You can use publish functions which return query cursors, or which
-uses publish `added`/`changed`/`removed` API.
+change needed. You can use publish functions which return query cursors, or one which
+uses publish `added`/`changed`/`removed` API for custom publish functions.
 
 This is useful in all situations where you want to publish documents which have a
 query based on data from some other document and you want that everything behaves
@@ -85,10 +85,14 @@ instead of having static arguments to your publish function, publish function is
 of arguments changes. Its API is thus simple and intuitive.
 
 * [meteor-reactive-publish](https://github.com/Diggsey/meteor-reactive-publish) – uses API based on server-side dependency
-tracking, but no tests and no support for `added`/`changed`/`removed`
-* [meteor-publish-with-relations](https://github.com/tmeasday/meteor-publish-with-relations/) – complicated custom API not
-allowing to reuse existing publish functions, which means no support for `added`/`changed`/`removed` as well
+  tracking, but no tests and no support for `added`/`changed`/`removed`
+* [meteor-publish-with-relations](https://github.com/tmeasday/meteor-publish-with-relations) – complicated custom API not
+  allowing to reuse existing publish functions, which means no support for `added`/`changed`/`removed` as well
 * [meteor-smart-publish](https://github.com/yeputons/meteor-smart-publish) – complicated way of defining dependencies
 and works only with query cursors and not custom `added`/`changed`/`removed` functions
-* [reywood:publish-composite](https://atmospherejs.com/reywood/publish-composite)- quite popular, TBD
-* [copleyjk:simple-publish](https://atmospherejs.com/copleykj/simple-publish) - boasts simple API, reduced CPU usage, and avoidance of memory leaks
+* [reywood:publish-composite](https://github.com/englue/meteor-publish-composite) – allow you to define a nested structure
+  of cursors, which get documents from higher levels in a reactive manner, but it works only with only with query cursors
+  and not custom `added`/`changed`/`removed` functions
+* [copleyjk:simple-publish](https://github.com/copleykj/meteor-simple-publish) – seems similar to
+  `meteor-publish-with-relations`, but a more developed version covering more edge cases; on the other hand it
+  has the same limitations of no support for `added`/`changed`/`removed`

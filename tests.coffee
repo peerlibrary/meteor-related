@@ -1,5 +1,6 @@
 Users = new Meteor.Collection 'Users_meteor_related_tests'
 Posts = new Meteor.Collection 'Posts_meteor_related_tests'
+Addresses = new Meteor.Collection 'Addresses_meteor_related_tests'
 Fields = new Meteor.Collection 'Fields_meteor_related_tests'
 
 if Meteor.isServer
@@ -39,6 +40,27 @@ if Meteor.isServer
     ,
       Fields.find userId
 
+  Meteor.publish 'users-posts-and-addresses', (userId) ->
+    @related (user) ->
+      Posts.find(
+        _id:
+          $in: user?.posts or []
+      )
+    ,
+      Users.find userId,
+        fields:
+          posts: 1
+
+    @related (user) ->
+      Addresses.find(
+        _id:
+          $in: user?.addresses or []
+      )
+    ,
+      Users.find userId,
+        fields:
+          addresses: 1
+
   Meteor.publish 'users-posts-count', (userId, countId) ->
     @related (user) ->
       count = 0
@@ -73,6 +95,8 @@ class RelatedTestCase extends ClassyTestCase
     # Initialize the database.
     Users.remove {}
     Posts.remove {}
+    Addresses.remove {}
+    Fields.remove {}
 
   setUpClient: ->
     @countsCollection ?= new Meteor.Collection 'Counts'
@@ -350,6 +374,95 @@ class RelatedTestCase extends ClassyTestCase
         _id: @postId
         dummyField: true
       ]
+  ]
+
+  testClientMultiple: [
+    ->
+      @userId = Random.id()
+
+      @assertSubscribeSuccessful 'users-posts-and-addresses', @userId, @expect()
+  ,
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual Addresses.find().fetch(), []
+
+      @posts = []
+
+      for i in [0...10]
+        Posts.insert {}, @expect (error, id) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue id
+          @posts.push id
+
+      @addresses = []
+
+      for i in [0...10]
+        Addresses.insert {}, @expect (error, id) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue id
+          @addresses.push id
+  ,
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual Addresses.find().fetch(), []
+
+      Users.insert
+        _id: @userId
+        posts: @posts
+        addresses: @addresses
+      ,
+        @expect (error, userId) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue userId
+          @assertEqual userId, @userId
+  ,
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
+      @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), @addresses
+
+      Users.update @userId,
+        $set:
+          posts: @posts[0..5]
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts[0..5]
+      @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), @addresses
+
+      Users.update @userId,
+        $set:
+          addresses: @addresses[0..5]
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts[0..5]
+      @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), @addresses[0..5]
+
+      Users.update @userId,
+        $unset:
+          addresses: ''
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts[0..5]
+      @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), []
+
+      Users.remove @userId, @expect (error, count) =>
+        @assertFalse error, error?.toString?() or error
+        @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), []
+      @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), []
   ]
 
 # Register the test case.

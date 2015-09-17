@@ -27,7 +27,7 @@ if Meteor.isServer
     Users.find()
 
   Meteor.publish 'posts', (ids) ->
-     Posts.find
+    Posts.find
       _id:
         $in: ids
 

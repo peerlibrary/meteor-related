@@ -5,17 +5,46 @@ Package.describe({
   git: 'https://github.com/peerlibrary/meteor-related.git'
 });
 
-Package.on_use(function (api) {
-  api.versionsFrom('METEOR@0.9.3');
-  api.use(['coffeescript', 'underscore', 'peerlibrary:assert@0.2.5'], 'server');
+Package.onUse(function (api) {
+  api.versionsFrom('METEOR@1.0.3.1');
 
-  api.add_files([
+  // Core dependencies.
+  api.use([
+    'coffeescript',
+    'underscore'
+  ], 'server');
+
+  // 3rd party dependencies.
+  api.use([
+    'peerlibrary:assert@0.2.5'
+  ], 'server');
+
+  api.addFiles([
     'server.coffee'
   ], 'server');
 });
 
-Package.on_test(function (api) {
-  api.use(['peerlibrary:related', 'tinytest', 'test-helpers', 'coffeescript', 'insecure', 'random', 'peerlibrary:assert'], ['client', 'server']);
+Package.onTest(function (api) {
+  api.use([
+    'tinytest',
+    'test-helpers',
+    'coffeescript',
+    'insecure',
+    'random',
+    'underscore'
+  ]);
 
-  api.add_files('tests.coffee', ['client', 'server']);
+  // Internal dependencies.
+  api.use([
+    'peerlibrary:related'
+  ]);
+
+  // 3rd party dependencies.
+  api.use([
+    'peerlibrary:assert@0.2.5'
+  ]);
+
+  api.addFiles([
+    'tests.coffee'
+  ]);
 });

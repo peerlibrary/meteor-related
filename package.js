@@ -41,7 +41,8 @@ Package.onTest(function (api) {
 
   // 3rd party dependencies.
   api.use([
-    'peerlibrary:assert@0.2.5'
+    'peerlibrary:assert@0.2.5',
+    'peerlibrary:classy-test@0.2.18'
   ]);
 
   api.addFiles([

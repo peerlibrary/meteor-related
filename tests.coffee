@@ -1,28 +1,7 @@
 Users = new Meteor.Collection 'Users_meteor_related_tests'
 Posts = new Meteor.Collection 'Posts_meteor_related_tests'
 
-intersectionObjects = (array, rest...) ->
-  _.filter _.uniq(array), (item) ->
-    _.every rest, (other) ->
-      _.any other, (element) -> _.isEqual element, item
-
-testSetEqual = (test, a, b) ->
-  a ||= []
-  b ||= []
-
-  if a.length is b.length and intersectionObjects(a, b).length is a.length
-    test.ok()
-  else
-    test.fail
-      type: 'assert_set_equal'
-      actual: JSON.stringify a
-      expected: JSON.stringify b
-
 if Meteor.isServer
-  # Initialize the database
-  Users.remove {}
-  Posts.remove {}
-
   Meteor.publish null, ->
     Users.find()
 
@@ -82,190 +61,189 @@ if Meteor.isServer
         fields:
           posts: 1
 
-if Meteor.isClient
-  Counts = new Meteor.Collection 'Counts'
+class RelatedTestCase extends ClassyTestCase
+  @testName: 'related'
 
-  testAsyncMulti 'related - basic', [
-    (test, expect) ->
+  setUpServer: ->
+    # Initialize the database.
+    Users.remove {}
+    Posts.remove {}
+
+  setUpClient: ->
+    @countsCollection ?= new Meteor.Collection 'Counts'
+
+  testClientBasic: [
+    ->
       @userId = Random.id()
       @countId = Random.id()
 
-      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId,
-        onReady: expect()
-        onError: (error) ->
-          test.exception error
-      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId,
-        onReady: expect()
-        onError: (error) ->
-          test.exception error
+      @assertSubscribeSuccessful 'users-posts', @userId, @expect()
+      @assertSubscribeSuccessful 'users-posts-count', @userId, @countId, @expect()
   ,
-    (test, expect) ->
-      test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne(@countId)?.count, 0
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
 
       @posts = []
 
       for i in [0...10]
-        Posts.insert {}, expect (error, id) =>
-          test.isFalse error, error?.toString?() or error
-          test.isTrue id
+        Posts.insert {}, @expect (error, id) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue id
           @posts.push id
   ,
-    (test, expect) ->
-      test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne(@countId)?.count, 0
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
 
       Users.insert
         _id: @userId
         posts: @posts
       ,
-        expect (error, userId) =>
-          test.isFalse error, error?.toString?() or error
-          test.isTrue userId
-          test.equal userId, @userId
+        @expect (error, userId) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue userId
+          @assertEqual userId, @userId
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne(@countId)?.count, @posts.length
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
+      @assertEqual @countsCollection.findOne(@countId)?.count, @posts.length
 
       @shortPosts = @posts[0...5]
 
       Users.update @userId,
         posts: @shortPosts
       ,
-        expect (error, count) =>
-          test.isFalse error, error?.toString?() or error
-          test.equal count, 1
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @shortPosts
-      test.equal Counts.findOne(@countId)?.count, @shortPosts.length
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @shortPosts
+      @assertEqual @countsCollection.findOne(@countId)?.count, @shortPosts.length
 
       Users.update @userId,
         posts: []
       ,
-        expect (error, count) =>
-          test.isFalse error, error?.toString?() or error
-          test.equal count, 1
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
   ,
-    (test, expect) ->
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), []
-      test.equal Counts.findOne(@countId)?.count, 0
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
 
       Users.update @userId,
         posts: @posts
       ,
-        expect (error, count) =>
-          test.isFalse error, error?.toString?() or error
-          test.equal count, 1
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne(@countId)?.count, @posts.length
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField, true
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
+      @assertEqual @countsCollection.findOne(@countId)?.count, @posts.length
 
-      Posts.remove @posts[0], expect (error, count) =>
-          test.isFalse error, error?.toString?() or error
-          test.equal count, 1
+      Posts.remove @posts[0], @expect (error, count) =>
+        @assertFalse error, error?.toString?() or error
+        @assertEqual count, 1
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts[1..]
-      test.equal Counts.findOne(@countId)?.count, @posts.length - 1
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts[1..]
+      @assertEqual @countsCollection.findOne(@countId)?.count, @posts.length - 1
 
       Users.remove @userId,
-        expect (error) =>
-          test.isFalse error, error?.toString?() or error
+        @expect (error) =>
+          @assertFalse error, error?.toString?() or error
   ,
-    (test, expect) ->
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), []
-      test.equal Counts.findOne(@countId)?.count, 0
-
-      @usersPostsSubscribe.stop()
-      @usersPostsCount.stop()
+    ->
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
   ]
 
-  testAsyncMulti 'related - unsubscribing', [
-    (test, expect) ->
+  testClientUnsubscribing: [
+    ->
       @userId = Random.id()
       @countId = Random.id()
 
-      @usersPostsSubscribe = Meteor.subscribe 'users-posts', @userId,
-        onReady: expect()
-        onError: (error) ->
-          test.exception error
-      @usersPostsCount = Meteor.subscribe 'users-posts-count', @userId, @countId,
-        onReady: expect()
-        onError: (error) ->
-          test.exception error
+      @assertSubscribeSuccessful 'users-posts', @userId, @expect()
+      @assertSubscribeSuccessful 'users-posts-count', @userId, @countId, @expect()
   ,
-    (test, expect) ->
-      test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne(@countId)?.count, 0
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
 
       @posts = []
 
       for i in [0...10]
-        Posts.insert {}, expect (error, id) =>
-          test.isFalse error, error?.toString?() or error
-          test.isTrue id
+        Posts.insert {}, @expect (error, id) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue id
           @posts.push id
   ,
-    (test, expect) ->
-      test.equal Posts.find().fetch(), []
-      test.equal Counts.findOne(@countId)?.count, 0
+    ->
+      @assertEqual Posts.find().fetch(), []
+      @assertEqual @countsCollection.findOne(@countId)?.count, 0
 
       Users.insert
         _id: @userId
         posts: @posts
       ,
-        expect (error, userId) =>
-          test.isFalse error, error?.toString?() or error
-          test.isTrue userId
-          test.equal userId, @userId
+        @expect (error, userId) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue userId
+          @assertEqual userId, @userId
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne(@countId)?.count, @posts.length
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
+      @assertEqual @countsCollection.findOne(@countId)?.count, @posts.length
 
-      # We have to update posts to trigger at least one rerun
+      # We have to update posts to trigger at least one rerun.
       Users.update @userId,
         posts: _.shuffle @posts
       ,
-        expect (error, count) =>
-          test.isFalse error, error?.toString?() or error
-          test.equal count, 1
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
   ,
-    (test, expect) ->
-      Posts.find().forEach (post) ->
-        test.isTrue post.dummyField, true
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
-      test.equal Counts.findOne(@countId)?.count, @posts.length
+    ->
+      Posts.find().forEach (post) =>
+        @assertTrue post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
+      @assertEqual @countsCollection.findOne(@countId)?.count, @posts.length
 
-      Meteor.subscribe 'posts', @posts,
-        onReady: expect()
-        onError: (error) ->
-          test.exception error
-      @usersPostsSubscribe.stop()
+      callback = @expect()
+      @postsSubscribe = Meteor.subscribe 'posts', @posts,
+        onReady: callback
+        onError: (error) =>
+          @assertFail
+            type: 'subscribe'
+            message: "Subscrption to endpoint failed, but should have succeeded."
+          callback()
+      @unsubscribeAll()
 
       # Let's wait a but for subscription to really stop
-      Meteor.setTimeout expect(), 1000
+      Meteor.setTimeout @expect(), 1000
   ,
-    (test, expect) ->
+    ->
       # After unsubscribing from the related-based publish which added dummyField,
       # dummyField should be removed from documents available on the client side
-      Posts.find().forEach (post) ->
-        test.isUndefined post.dummyField
-      testSetEqual test, _.pluck(Posts.find().fetch(), '_id'), @posts
+      Posts.find().forEach (post) =>
+        @assertIsUndefined post.dummyField
+      @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
 
-      @usersPostsSubscribe.stop()
-      @usersPostsCount.stop()
+      @postsSubscribe.stop()
   ]
+
+# Register the test case.
+ClassyTestCase.addTest new RelatedTestCase()

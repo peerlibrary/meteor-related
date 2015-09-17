@@ -61,6 +61,25 @@ if Meteor.isServer
         fields:
           addresses: 1
 
+  Meteor.publish 'users-posts-and-addresses-together', (userId) ->
+    @related (user) ->
+      [
+        Posts.find(
+          _id:
+            $in: user?.posts or []
+        )
+      ,
+        Addresses.find(
+          _id:
+            $in: user?.addresses or []
+        )
+      ]
+    ,
+      Users.find userId,
+        fields:
+          posts: 1
+          addresses: 1
+
   Meteor.publish 'users-posts-count', (userId, countId) ->
     @related (user) ->
       count = 0
@@ -376,12 +395,7 @@ class RelatedTestCase extends ClassyTestCase
       ]
   ]
 
-  testClientMultiple: [
-    ->
-      @userId = Random.id()
-
-      @assertSubscribeSuccessful 'users-posts-and-addresses', @userId, @expect()
-  ,
+  @multiple: [
     ->
       @assertEqual Posts.find().fetch(), []
       @assertEqual Addresses.find().fetch(), []
@@ -464,6 +478,20 @@ class RelatedTestCase extends ClassyTestCase
       @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), []
       @assertItemsEqual _.pluck(Addresses.find().fetch(), '_id'), []
   ]
+
+  testClientMultiple: [
+    ->
+      @userId = Random.id()
+
+      @assertSubscribeSuccessful 'users-posts-and-addresses', @userId, @expect()
+  ].concat @multiple
+
+  testClientMultipleTogether: [
+    ->
+      @userId = Random.id()
+
+      @assertSubscribeSuccessful 'users-posts-and-addresses-together', @userId, @expect()
+  ].concat @multiple
 
 # Register the test case.
 ClassyTestCase.addTest new RelatedTestCase()

@@ -25,6 +25,7 @@ Package.onUse(function (api) {
 });
 
 Package.onTest(function (api) {
+  // Core dependencies.
   api.use([
     'tinytest',
     'test-helpers',

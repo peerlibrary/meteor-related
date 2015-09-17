@@ -1,5 +1,6 @@
 Users = new Meteor.Collection 'Users_meteor_related_tests'
 Posts = new Meteor.Collection 'Posts_meteor_related_tests'
+Fields = new Meteor.Collection 'Fields_meteor_related_tests'
 
 if Meteor.isServer
   Meteor.publish null, ->
@@ -13,12 +14,14 @@ if Meteor.isServer
   Meteor.publish 'users-posts', (userId) ->
     @copyIn = true
 
-    @related (user) ->
+    @related (user, fields) ->
       assert @copyIn, "copyIn not copied into related publish"
 
       Posts.find(
         _id:
           $in: user?.posts or []
+      ,
+        fields: _.omit (fields or {}), '_id'
       ).observeChanges
         added: (id, fields) =>
           fields.dummyField = true
@@ -33,6 +36,8 @@ if Meteor.isServer
       Users.find userId,
         fields:
           posts: 1
+    ,
+      Fields.find userId
 
   Meteor.publish 'users-posts-count', (userId, countId) ->
     @related (user) ->
@@ -243,6 +248,108 @@ class RelatedTestCase extends ClassyTestCase
       @assertItemsEqual _.pluck(Posts.find().fetch(), '_id'), @posts
 
       @postsSubscribe.stop()
+  ]
+
+  testClientRemoveField: [
+    ->
+      @userId = Random.id()
+
+      @assertSubscribeSuccessful 'users-posts', @userId, @expect()
+  ,
+    ->
+      @assertEqual Posts.find().fetch(), []
+
+      Fields.insert
+        _id: @userId
+        foo: 1
+        dummyField: 1
+      ,
+        @expect (error, id) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue id
+          @fieldsId = id
+
+      Posts.insert {foo: 'bar'}, @expect (error, id) =>
+        @assertFalse error, error?.toString?() or error
+        @assertTrue id
+        @postId = id
+  ,
+    ->
+      @assertEqual Posts.find().fetch(), []
+
+      Users.insert
+        _id: @userId
+        posts: [@postId]
+      ,
+        @expect (error, userId) =>
+          @assertFalse error, error?.toString?() or error
+          @assertTrue userId
+          @assertEqual userId, @userId
+  ,
+    ->
+      @assertItemsEqual Posts.find().fetch(), [
+        _id: @postId
+        foo: 'bar'
+        dummyField: true
+      ]
+
+      Posts.update @postId,
+        $set:
+          foo: 'baz'
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual Posts.find().fetch(), [
+        _id: @postId
+        foo: 'baz'
+        dummyField: true
+      ]
+
+      Posts.update @postId,
+        $unset:
+          foo: ''
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual Posts.find().fetch(), [
+        _id: @postId
+        dummyField: true
+      ]
+
+      Posts.update @postId,
+        $set:
+          foo: 'bar'
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual Posts.find().fetch(), [
+        _id: @postId
+        foo: 'bar'
+        dummyField: true
+      ]
+
+      Fields.update @userId,
+        $unset:
+          foo: ''
+      ,
+        @expect (error, count) =>
+          @assertFalse error, error?.toString?() or error
+          @assertEqual count, 1
+  ,
+    ->
+      @assertItemsEqual Posts.find().fetch(), [
+        _id: @postId
+        dummyField: true
+      ]
   ]
 
 # Register the test case.

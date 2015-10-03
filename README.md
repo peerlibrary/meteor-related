@@ -17,6 +17,9 @@ documents based on flags and other properties of currently logged-in user.
 
 Server side only.
 
+See also the follow-up package [peerlibrary:reactive-publish](https://github.com/peerlibrary/meteor-reactive-publish)
+which provides an alternative API through Meteor reactivity and familiar server-side `autorun`.
+
 Installation
 ------------
 

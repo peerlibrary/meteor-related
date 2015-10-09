@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Publish with reactive dependencies on related queries",
-  version: '0.1.8',
+  version: '0.1.9',
   name: 'peerlibrary:related',
   git: 'https://github.com/peerlibrary/meteor-related.git'
 });
@@ -43,7 +43,7 @@ Package.onTest(function (api) {
   // 3rd party dependencies.
   api.use([
     'peerlibrary:assert@0.2.5',
-    'peerlibrary:classy-test@0.2.18'
+    'peerlibrary:classy-test@0.2.19'
   ]);
 
   api.addFiles([

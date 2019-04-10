@@ -20,6 +20,8 @@ unless originalPublish
 
         publishDocuments = (relatedDocuments) ->
           oldRelatedPublish = relatedPublish
+          # Check if we are using Meteor 1.8.1+ which uses Maps/Sets instead of objects
+          newDDP = (oldRelatedPublish?._documents instanceof Map)
 
           relatedPublish = publish._recreate()
 
@@ -39,19 +41,30 @@ unless originalPublish
             # If document as already present in oldRelatedPublish then we just set
             # relatedPublish's _documents and call changed to send updated fields
             # (Meteor sends only a diff).
-            if oldRelatedPublish?._documents.get(collectionName)?.has(stringId)
-              ids = @_documents.get(collectionName)
-              if !ids
-                ids = new Set
-                @_documents.set(collectionName, ids)
-              ids.add(stringId)
+            if newDDP
+              runAdded = oldRelatedPublish?._documents.get(collectionName)?.has(stringId)
+            else
+              runAdded = oldRelatedPublish?._documents[collectionName]?[stringId]
+            if runAdded
+              if newDDP
+                ids = @_documents.get(collectionName)
+                if !ids
+                  ids = new Set
+                  @_documents.set(collectionName, ids)
+                ids.add(stringId)
+              else
+                Meteor._ensure(@_documents, collectionName)[stringId] = true
               oldFields = {}
               # If some field existed before, but does not exist anymore, we have to remove it by calling "changed"
               # with value set to "undefined". So we look into current session's state and see which fields are currently
               # known and create an object of same fields, just all values set to "undefined". We then override some fields
               # with new values. Only top-level fields matter.
-              for field in Array.from(@_session.getCollectionView(collectionName)?.documents?.get(id)?.dataByKey.keys()) or []
-                oldFields[field] = undefined
+              if newDDP
+                for field in Array.from(@_session.getCollectionView(collectionName)?.documents?.get(id)?.dataByKey.keys()) or []
+                  oldFields[field] = undefined
+              else
+                for field of @_session.getCollectionView(collectionName)?.documents?[id]?.dataByKey or {}
+                  oldFields[field] = undefined
               @changed collectionName, id, _.extend oldFields, fields
             else
               relatedPublishAdded.call @, collectionName, id, fields
@@ -89,9 +102,14 @@ unless originalPublish
           return unless oldRelatedPublish
 
           # We remove those which are not published anymore
-          for collectionName in Array.from(oldRelatedPublish._documents.keys())
-            for id in _.difference(Array.from((oldRelatedPublish._documents.get(collectionName) or new Map).keys()), Array.from((relatedPublish._documents.get(collectionName) or new Map).keys()))
-              oldRelatedPublish.removed collectionName, id
+          if newDDP
+            for collectionName in Array.from(oldRelatedPublish._documents.keys())
+              for id in _.difference(Array.from((oldRelatedPublish._documents.get(collectionName) or new Map).keys()), Array.from((relatedPublish._documents.get(collectionName) or new Map).keys()))
+                oldRelatedPublish.removed collectionName, id
+          else
+            for collectionName in _.keys(oldRelatedPublish._documents)
+              for id in _.difference _.keys(oldRelatedPublish._documents[collectionName] or {}), _.keys(relatedPublish._documents[collectionName] or {})
+                oldRelatedPublish.removed collectionName, id
 
           oldRelatedPublish.stop true
           oldRelatedPublish = null

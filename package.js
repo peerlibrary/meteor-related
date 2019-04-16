@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Publish with reactive dependencies on related queries",
-  version: '0.1.9',
+  version: '0.2.0',
   name: 'peerlibrary:related',
   git: 'https://github.com/peerlibrary/meteor-related.git'
 });

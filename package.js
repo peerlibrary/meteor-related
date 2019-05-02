@@ -1,16 +1,16 @@
 Package.describe({
   summary: "Publish with reactive dependencies on related queries",
-  version: '0.2.1',
+  version: '0.2.2',
   name: 'peerlibrary:related',
   git: 'https://github.com/peerlibrary/meteor-related.git'
 });
 
 Package.onUse(function (api) {
-  api.versionsFrom('METEOR@1.3.4.4');
+  api.versionsFrom('METEOR@1.7');
 
   // Core dependencies.
   api.use([
-    'coffeescript',
+    'coffeescript@2.3.2_1',
     'underscore'
   ], 'server');
 
@@ -25,13 +25,13 @@ Package.onUse(function (api) {
 });
 
 Package.onTest(function (api) {
-  api.versionsFrom('METEOR@1.3.4.4');
+  api.versionsFrom('METEOR@1.7');
 
   // Core dependencies.
   api.use([
     'tinytest',
     'test-helpers',
-    'coffeescript',
+    'coffeescript@2.3.2_1',
     'insecure',
     'random',
     'underscore'
